@@ -1,0 +1,69 @@
+name: Topla
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write          # yalnız ayda bir README "son çalışma" satırı için
+
+concurrency:
+  group: topla
+  cancel-in-progress: false
+
+jobs:
+  tur:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      VERI_TOKEN: ${{ secrets.VERI_TOKEN }}
+      VERI_REPO: ${{ secrets.VERI_REPO }}
+      VERI_DAL: toplayici-veri
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          path: kod
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Bağımlılık
+        run: python -m pip install --quiet curl-cffi==0.16.3
+      - name: Veri dalını al
+        run: |
+          AUTH=$(printf 'x-access-token:%s' "$VERI_TOKEN" | base64 -w0)
+          echo "::add-mask::$AUTH"
+          git -c http.extraheader="AUTHORIZATION: basic $AUTH" clone --quiet --depth 1 --branch "$VERI_DAL" \
+            "https://github.com/$VERI_REPO.git" veri
+          git -C veri config http.extraheader "AUTHORIZATION: basic $AUTH"
+      - name: Tur
+        run: python kod/toplayici.py --veri veri --yeni-ilk11 yeni_ilk11.txt
+      - name: Veriyi gönder
+        working-directory: veri
+        run: |
+          git config user.name toplayici
+          git config user.email toplayici@users.noreply.github.com
+          git add -A
+          if [ "$(date -u +%d%H)" = "0100" ]; then
+            # ayda bir: dal tek commit'e iner, eski dosyaların geçmişi tutulmaz
+            git checkout --quiet --orphan sikistir
+            git commit --quiet -m "Aylık sıkıştırma $(date -u +%Y-%m)"
+            git push --quiet --force origin "sikistir:$VERI_DAL"
+            echo "sıkıştırıldı"
+          elif ! git diff --cached --quiet; then
+            git commit --quiet -m "Tur $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push --quiet origin "HEAD:$VERI_DAL"
+            echo "gönderildi"
+          else
+            echo "değişiklik yok"
+          fi
+      - name: Etkinlik (60 gün kuralı)
+        if: github.event_name == 'schedule'
+        working-directory: kod
+        run: |
+          if [ "$(date -u +%d%H)" = "0100" ]; then
+            sed -i "s/^Son aylık çalışma: .*/Son aylık çalışma: $(date -u +%Y-%m-%d)/" README.md
+            git config user.name toplayici
+            git config user.email toplayici@users.noreply.github.com
+            git commit --quiet -am "Aylık etkinlik" && git push --quiet || true
+          fi
