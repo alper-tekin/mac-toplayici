@@ -1,4 +1,5 @@
 name: Topla
+# Zamanlama: GitHub cron, UTC; 5 dk en kısa aralık
 
 on:
   schedule:
