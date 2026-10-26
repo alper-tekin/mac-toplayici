@@ -1,13 +1,15 @@
 name: Topla
-# Zamanlama: GitHub cron, UTC; 5 dk en kısa aralık
+# Her tur bitince 5 dk'yı doldurup bir sonraki turu kendisi başlatır (zincir).
+# GitHub cron'u yalnız yedek: zincir koparsa yeniden başlatır. Durdurmak için Actions'ta workflow'u devre dışı bırak.
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions:
   contents: write          # yalnız ayda bir README "son çalışma" satırı için
+  actions: write           # bir sonraki turu başlatmak için
 
 concurrency:
   group: topla
@@ -16,12 +18,14 @@ concurrency:
 jobs:
   tur:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     env:
       VERI_TOKEN: ${{ secrets.VERI_TOKEN }}
       VERI_REPO: ${{ secrets.VERI_REPO }}
       VERI_DAL: toplayici-veri
     steps:
+      - name: Başlangıç
+        run: echo "BASLANGIC=$(date +%s)" >> "$GITHUB_ENV"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           path: kod
@@ -59,7 +63,6 @@ jobs:
             echo "değişiklik yok"
           fi
       - name: Etkinlik (60 gün kuralı)
-        if: github.event_name == 'schedule'
         working-directory: kod
         run: |
           if [ "$(date -u +%d%H)" = "0100" ]; then
@@ -68,3 +71,16 @@ jobs:
             git config user.email toplayici@users.noreply.github.com
             git commit --quiet -am "Aylık etkinlik" && git push --quiet || true
           fi
+      - name: Sonraki tur
+        # elle iptal edilirse zincir durur; hata olsa da sürer
+        if: success() || failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          bekle=$(( 300 - ($(date +%s) - BASLANGIC) ))
+          [ "$bekle" -gt 0 ] && sleep "$bekle"
+          curl -sS -f -o /dev/null -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/topla.yml/dispatches" \
+            -d '{"ref":"main"}'
+          echo "sonraki tur istendi"
