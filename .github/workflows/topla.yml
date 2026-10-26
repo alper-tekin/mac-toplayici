@@ -62,6 +62,17 @@ jobs:
           else
             echo "değişiklik yok"
           fi
+      - name: Modeli tetikle
+        # yeni ilk 11 gönderildiyse veri deposundaki model işini başlat (repository_dispatch "ilk11")
+        run: |
+          if [ -s yeni_ilk11.txt ]; then
+            curl -sS -f -o /dev/null -X POST \
+              -H "Authorization: Bearer $VERI_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$VERI_REPO/dispatches" -d '{"event_type":"ilk11"}'
+            echo "model tetiklendi: $(grep -c . yeni_ilk11.txt) maç"
+          else
+            echo "yeni ilk 11 yok"
+          fi
       - name: Etkinlik (60 gün kuralı)
         working-directory: kod
         run: |
