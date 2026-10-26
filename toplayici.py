@@ -86,8 +86,11 @@ def tamam(detail: dict) -> bool:
 
 
 def kadro_ozeti(detail: dict, now: datetime) -> dict:
+    """Kadroya çevirmek için yeterli kısım: maç kimliği (general), takımlar ve durum (header), kadro."""
     content = detail.get('content') or {}
-    return dict(alindi=now.isoformat(), status=(detail.get('header') or {}).get('status'), lineup=content.get('lineup'))
+    header = detail.get('header') or {}
+    return dict(alindi=now.isoformat(), status=header.get('status'), general=detail.get('general'), header=header,
+                lineup=content.get('lineup'))
 
 
 class Tur:
