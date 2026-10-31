@@ -1,0 +1,54 @@
+name: Oranlar
+# Elle çalıştırılır: football-data.co.uk sezon CSV'lerini veri dalına oranlar/ altına yazar.
+# Topla zinciriyle aynı dala yazdığı için push çakışırsa yeniden alıp tekrar dener.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oranlar
+  cancel-in-progress: false
+
+jobs:
+  oranlar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERI_TOKEN: ${{ secrets.VERI_TOKEN }}
+      VERI_REPO: ${{ secrets.VERI_REPO }}
+      VERI_DAL: toplayici-veri
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          path: kod
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Veri dalını al
+        run: |
+          AUTH=$(printf 'x-access-token:%s' "$VERI_TOKEN" | base64 -w0)
+          echo "::add-mask::$AUTH"
+          git -c http.extraheader="AUTHORIZATION: basic $AUTH" clone --quiet --depth 1 --branch "$VERI_DAL" \
+            "https://github.com/$VERI_REPO.git" veri
+          git -C veri config http.extraheader "AUTHORIZATION: basic $AUTH"
+      - name: Oranları indir
+        run: python kod/oranlar.py --veri veri
+      - name: Veriyi gönder
+        working-directory: veri
+        run: |
+          git config user.name toplayici
+          git config user.email toplayici@users.noreply.github.com
+          git add oranlar
+          if git diff --cached --quiet; then echo "değişiklik yok"; exit 0; fi
+          git commit --quiet -m "Oranlar $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3 4 5; do
+            git push --quiet origin "HEAD:$VERI_DAL" && { echo "gönderildi"; exit 0; }
+            sleep 20
+            # yalnız oranlar/ commit'imizi dalın yeni ucuna taşı (aylık sıkıştırmadan sonra da çalışır)
+            git fetch --quiet --depth 1 origin "$VERI_DAL"
+            git rebase --quiet --onto FETCH_HEAD HEAD~1
+          done
+          echo "gönderilemedi"; exit 1
