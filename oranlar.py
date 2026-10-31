@@ -44,8 +44,9 @@ def calistir(veri: Path, fetch=indir, sleep=time.sleep) -> dict:
             except Exception:
                 say['hata'] += 1
                 continue
-            if not data.lstrip().startswith(b'Div'):
+            if not data.removeprefix(b'\xef\xbb\xbf').lstrip().startswith(b'Div'):   # yeni sezon dosyaları BOM'lu
                 say['bos'] += 1
+                say['bos_ilk'] = sorted({*say.get('bos_ilk', []), data[:4].hex()})   # yalnız ilk 4 bayt, tanı için
                 continue
             yol = kok / sezon / f'{lig}.csv'
             yol.parent.mkdir(parents=True, exist_ok=True)
