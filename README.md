@@ -13,4 +13,4 @@ Ayrıca elle çalıştırılan `Oranlar` işi football-data.co.uk'nin herkese a�
 
 Toplanan veri bu depoda tutulmaz; çalışma kayıtlarında yalnız sayılar görünür.
 
-Son aylık çalışma: -
+Son aylık çalışma: 2026-11-01
