@@ -14,6 +14,9 @@ Ayrıca elle çalıştırılan `Oranlar` işi football-data.co.uk'nin herkese a�
 Elle başlatılan `Gecmis` işi, 2019/20–2022/23 sezonlarının fikstürünü ve bitmiş maçların sayfasını
 bir kez ister (istekler arası 3–4,5 sn). Her tur ~45 dakikadır, iş bitince kendiliğinden durur.
 
+Elle başlatılan `Understat` işi, beş büyük ligin 2019/20–2022/23 sezonlarında Understat'ın herkese açık
+lig ve maç verisini (şutlar) aynı kurallarla bir kez ister.
+
 Toplanan veri bu depoda tutulmaz; çalışma kayıtlarında yalnız sayılar görünür.
 
 Son aylık çalışma: 2026-11-01
