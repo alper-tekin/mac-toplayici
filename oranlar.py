@@ -16,7 +16,7 @@ from pathlib import Path
 
 BASE = 'https://www.football-data.co.uk/mmz4281'
 LIGLER = ['E0', 'SP1', 'I1', 'D1', 'F1', 'N1', 'B1', 'P1', 'T1']
-SEZONLAR = ['2223', '2324', '2425', '2526', '2627']
+SEZONLAR = ['1920', '2021', '2122', '2223', '2324', '2425', '2526', '2627']
 BEKLE = 3.0
 
 

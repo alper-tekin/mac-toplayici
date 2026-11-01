@@ -9,7 +9,10 @@ ve maç sonu istatistikleri (maçtan 3 saat sonra, 15 dk arayla, tamamlanana kad
 İstekler arasında 2–4 saniye beklenir ve bir turda en çok 80 istek yapılır.
 
 Ayrıca elle çalıştırılan `Oranlar` işi football-data.co.uk'nin herkese açık sezon CSV'lerini
-(9 lig, 5 sezon; 3 saniye arayla) bir kez indirir.
+(9 lig, 8 sezon; 3 saniye arayla) bir kez indirir.
+
+Elle başlatılan `Gecmis` işi, 2019/20–2022/23 sezonlarının fikstürünü ve bitmiş maçların sayfasını
+bir kez ister (istekler arası 3–4,5 sn). Her tur ~45 dakikadır, iş bitince kendiliğinden durur.
 
 Toplanan veri bu depoda tutulmaz; çalışma kayıtlarında yalnız sayılar görünür.
 
