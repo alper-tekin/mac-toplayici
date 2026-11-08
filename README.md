@@ -13,6 +13,8 @@ Ayrıca elle çalıştırılan `Oranlar` işi football-data.co.uk'nin herkese a�
 
 Elle başlatılan `Gecmis` işi, 2019/20–2022/23 sezonlarının fikstürünü ve bitmiş maçların sayfasını
 bir kez ister (istekler arası 3–4,5 sn). Her tur ~45 dakikadır, iş bitince kendiliğinden durur.
+Kasım 2026'dan itibaren dokuz ligi daha 2019/20–2025/26 (takvim yılıyla oynayanlarda 2019–2025) için kapsar:
+Championship, İskoçya, Avusturya, İsviçre, Danimarka, Yunanistan, Brezilya, MLS, Arjantin.
 
 Elle başlatılan `Understat` işi, beş büyük ligin 2019/20–2022/23 sezonlarında Understat'ın herkese açık
 lig ve maç verisini (şutlar) aynı kurallarla bir kez ister.

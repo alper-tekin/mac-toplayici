@@ -26,8 +26,30 @@ BEKLE = (3.0, 4.5)
 ARDISIK_HATA = 5
 
 
+# Yeni ligler (2026-11-08): kabul testi için 2019/20–2025/26 tamamlanmış sezonlar. Sezon adları FotMob'un
+# allAvailableSeasons listesinden; takvim yılıyla oynayan ligler farklı biçim kullanıyor.
+AVRUPA_SEZON = ['2019/2020', '2020/2021', '2021/2022', '2022/2023', '2023/2024', '2024/2025', '2025/2026']
+YIL_SEZON = ['2019', '2020', '2021', '2022', '2023', '2024', '2025']
+YENI_LIGLER = [
+    (48, AVRUPA_SEZON),    # Championship
+    (64, AVRUPA_SEZON),    # İskoçya Premiership
+    (38, AVRUPA_SEZON),    # Avusturya Bundesliga
+    (69, AVRUPA_SEZON),    # İsviçre Super League
+    (46, AVRUPA_SEZON),    # Danimarka Superliga
+    (135, AVRUPA_SEZON),   # Yunanistan Super League 1
+    (268, YIL_SEZON),      # Brezilya Série A
+    (130, YIL_SEZON),      # MLS
+    (112, ['2019/2020', '2021', '2022', '2023', '2024', '2025 - Apertura', '2025 - Clausura']),   # Arjantin
+]
+
+
 def isler() -> list[tuple[int, str]]:
-    return [(l, s) for s in SEZONLAR for l in LIGLER if not (l == 10216 and s < KL_ILK)]
+    eski = [(l, s) for s in SEZONLAR for l in LIGLER if not (l == 10216 and s < KL_ILK)]
+    return eski + [(l, s) for l, sezonlar in YENI_LIGLER for s in sezonlar]
+
+
+def dosya_adi(lig: int, sez: str) -> str:
+    return f"{lig}_{sez.replace('/', '-').replace(' ', '')}.json.gz"
 
 
 def yaz_gz(path: Path, value) -> None:
@@ -75,7 +97,7 @@ def calistir(veri: Path, butce_sn: float, fetch=istek, sleep=time.sleep, saat=ti
         d = iste('leagues', {'id': lig, 'season': sez})
         if d is None:
             continue
-        yaz_gz(kok / 'leagues' / f"{lig}_{sez.replace('/', '-')}.json.gz", d)
+        yaz_gz(kok / 'leagues' / dosya_adi(lig, sez), d)
         mevcut = set(durum['bekleyen'])
         for m in mac_nesneleri(d):
             mid = str(m['id'])

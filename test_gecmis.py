@@ -6,7 +6,7 @@ import gecmis as g
 
 def lig_yaniti(lig, sez):
     def mac(i, finished=True):
-        return {'id': f'{lig}{sez[:4]}{i}', 'home': {'name': 'A'}, 'away': {'name': 'B'},
+        return {'id': f'{lig}{sez[:4]}{i}' + ''.join(c for c in sez[4:] if c.isalpha()), 'home': {'name': 'A'}, 'away': {'name': 'B'},
                 'status': {'finished': finished}}
     return {'fixtures': {'allMatches': [mac(1), mac(2), mac(3, finished=False)]}}
 
@@ -75,3 +75,22 @@ def test_ardisik_hatada_durur(tmp_path):
     f = Fake(hata={(l, s) for l, s in g.isler()})
     say = g.calistir(tmp_path, 1e9, fetch=f, sleep=lambda s: None, saat=Saat(0))
     assert say['durdu_hata'] == 1 and say['istek'] == g.ARDISIK_HATA
+
+
+def test_yeni_ligler_ve_sezon_bicimleri(tmp_path):
+    ler = g.isler()
+    assert len(ler) == len(set(ler))
+    assert (48, '2025/2026') in ler and (268, '2019') in ler and (112, '2025 - Apertura') in ler
+    assert g.dosya_adi(112, '2025 - Apertura') == '112_2025-Apertura.json.gz'
+    assert g.dosya_adi(47, '2019/2020') == '47_2019-2020.json.gz'   # eski dosya adları değişmez
+
+
+def test_eski_isler_bittiyse_yalniz_yeniler_istenir(tmp_path):
+    eski = [(l, s) for s in g.SEZONLAR for l in g.LIGLER if not (l == 10216 and s < g.KL_ILK)]
+    (tmp_path / 'gecmis').mkdir()
+    (tmp_path / 'gecmis' / 'durum.json').write_text(json.dumps(
+        {'lig_tamam': [f'{l}_{s}' for l, s in eski], 'bekleyen': [], 'tamam': 0, 'vazgec': {}}), encoding='utf-8')
+    f = Fake()
+    say = g.calistir(tmp_path, 1e9, fetch=f, sleep=lambda s: None, saat=Saat(0))
+    istenen = {(p['id'], p['season']) for path, p in f.calls if path == 'leagues'}
+    assert istenen == {(l, s) for l, ss in g.YENI_LIGLER for s in ss} and say['bitti'] == 1
