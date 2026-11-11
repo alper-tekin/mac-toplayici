@@ -93,4 +93,5 @@ def test_eski_isler_bittiyse_yalniz_yeniler_istenir(tmp_path):
     f = Fake()
     say = g.calistir(tmp_path, 1e9, fetch=f, sleep=lambda s: None, saat=Saat(0))
     istenen = {(p['id'], p['season']) for path, p in f.calls if path == 'leagues'}
-    assert istenen == {(l, s) for l, ss in g.YENI_LIGLER for s in ss} and say['bitti'] == 1
+    assert istenen == {(l, s) for l, ss in g.YENI_LIGLER for s in ss} | set(g.GUNCEL) and say['bitti'] == 1
+    assert (112, '2026 - Apertura') in istenen and (48, '2026/2027') in istenen

@@ -41,11 +41,15 @@ YENI_LIGLER = [
     (130, YIL_SEZON),      # MLS
     (112, ['2019/2020', '2021', '2022', '2023', '2024', '2025 - Apertura', '2025 - Clausura']),   # Arjantin
 ]
+# Güncel sezonun o güne kadar bitmiş maçları (2026-11-12, yeni ligler oyuncu puanı Faz 0): bulut toplayıcı bu
+# ligleri 11 Kasım'dan beri topluyor; önceki maçlar bir kez buradan alınır. Bir sezon bir kez işlenir.
+GUNCEL = [(lig, '2026/2027') for lig in (48, 64, 38, 69, 46, 135)] + \
+         [(268, '2026'), (130, '2026'), (112, '2026 - Apertura'), (112, '2026 - Clausura')]
 
 
 def isler() -> list[tuple[int, str]]:
     eski = [(l, s) for s in SEZONLAR for l in LIGLER if not (l == 10216 and s < KL_ILK)]
-    return eski + [(l, s) for l, sezonlar in YENI_LIGLER for s in sezonlar]
+    return eski + [(l, s) for l, sezonlar in YENI_LIGLER for s in sezonlar] + GUNCEL
 
 
 def dosya_adi(lig: int, sez: str) -> str:
