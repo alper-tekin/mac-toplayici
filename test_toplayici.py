@@ -161,6 +161,17 @@ def test_lig_fiksturu_gunde_bir_ve_gelecek_maclar(tmp_path):
     assert z.say['lig'] == 1 and z.say['gelecek'] == 1
 
 
+def test_takvim_yili_ligi_sezonu_fotmob_secer(tmp_path):
+    lig = {'fixtures': {'allMatches': []}, 'details': {'name': 'x', 'selectedSeason': '2026 - Clausura'}}
+    fake = Fake({'1': detail()}, {112: lig})
+    (tmp_path / 'ligler.json').write_text('[112, 71]')
+    x = t.Tur(tmp_path, KO - timedelta(hours=5), fetch=fake, sleep=lambda s: None)
+    x.calistir()
+    istekler = [p for path, p in fake.calls if path == 'leagues']
+    assert {'id': 112} in istekler and {'id': 71, 'season': '2026/2027'} in istekler
+    assert oku(tmp_path / 'lig' / '112.json.gz')['sezon'] == '2026 - Clausura'
+
+
 def test_gelecek_yakin_mac_12_saatte_yenilenir(tmp_path):
     lig = {'fixtures': {'allMatches': [fikstur_satiri(10, '2026-10-27T18:00:00.000Z')]}}
     fake = Fake({'1': detail(), '10': detail()}, {71: lig})

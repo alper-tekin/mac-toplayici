@@ -43,6 +43,7 @@ MAC_ARALIK = timedelta(minutes=15)
 MAC_VAZGEC = timedelta(hours=24)
 SAKLAMA = timedelta(days=21)
 GELECEK_GUN = timedelta(days=14)
+YIL_LIGLERI = {268, 130, 112}   # Brezilya Série A, MLS, Arjantin: sezon takvim yılı ("2026", "2026 - Apertura")
 GELECEK_GERI = timedelta(days=2)       # ertelenmiş/oynanmamış yakın geçmiş de güncellemenin seçimine girer
 GELECEK_YAKIN = timedelta(days=2)
 GELECEK_YENILE = timedelta(hours=12)
@@ -254,8 +255,12 @@ class Tur:
             if alinan.get(str(lig)) == gun:
                 continue
             try:
-                s = sezon(self.now)
-                data = self._istek('leagues', {'id': lig, 'season': s})
+                if lig in YIL_LIGLERI:   # takvim yılı ligi: sezonu FotMob seçer (güncel), adı yanıttan
+                    data = self._istek('leagues', {'id': lig})
+                    s = str(((data or {}).get('details') or {}).get('selectedSeason') or self.now.year)
+                else:
+                    s = sezon(self.now)
+                    data = self._istek('leagues', {'id': lig, 'season': s})
                 yaz(self.veri / 'lig' / f'{lig}.json.gz', dict(alindi=self.now.isoformat(), sezon=s, veri=data))
                 for m in mac_nesneleri(data):
                     mid, status = str(m['id']), m.get('status') or {}
