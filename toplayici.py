@@ -8,6 +8,8 @@ Takvim (her tur 5 dk'da bir; öncelik bu sırayla, turdaki istek sınırı dolar
   mac       başlamadan 3 saat sonra, 15 dk arayla, veri tamamlanana dek  -> mac/<maç>.json.gz
             (24 saatte tamamlanmazsa bitmişse olduğu gibi, `eksik` işaretiyle)
   lig       her ligin fikstürü günde bir kez                             -> lig/<lig>.json.gz
+            günlük listede hiç görünmemiş, son 16 günde bitmiş maçlar (ör. kupanın erken turları) buradan
+            takibe alınır; 24 saati geçtiyse `mac` adımı onları turda en çok GEC_SINIRI tane yazar
   gelecek   önümüzdeki 14 günün maç sayfası: yeni/değişmiş olan, 2 gün içindekiler 12 saatte bir
                                                                            -> gelecek/<maç>.json.gz
 Bu kayıtlar veri deposundaki günlük güncellemenin FotMob yerine okuduğu kaynaktır.
@@ -48,6 +50,8 @@ GELECEK_GERI = timedelta(days=2)       # ertelenmiş/oynanmamış yakın geçmi�
 GELECEK_YAKIN = timedelta(days=2)
 GELECEK_YENILE = timedelta(hours=12)
 ISTEK_SINIRI = 80          # bir turda en çok FotMob isteği
+KACAN_GERI = timedelta(days=16)   # lig fikstüründen takibe alınacak bitmiş maçın en eski başlama anı
+GEC_SINIRI = 15            # bir turda en çok kaç 24 saati geçmiş maç (birikmiş iş ilk 11'i geciktirmesin)
 
 
 def utc(value: str) -> datetime:
@@ -151,7 +155,7 @@ class Tur:
         self.ligler = {int(x) for x in json_oku(veri / 'ligler.json', [])}
         self.durum = json_oku(veri / 'durum.json', {'maclar': {}})
         self.say = dict(istek=0, fikstur=0, muhtemel=0, ilk11=0, mac=0, mac_eksik=0, vazgecildi=0, lig=0, gelecek=0,
-                        hata=0, silindi=0)
+                        kacan=0, hata=0, silindi=0)
         self.yeni_ilk11: list[str] = []
         self._detay: dict[str, dict] = {}
 
@@ -204,6 +208,7 @@ class Tur:
     def isler(self) -> None:
         bugun = self.now.astimezone(TZ).date()
         saat = self.now.astimezone(TZ).strftime('%H')
+        gec = 0
         for mid, k in sorted(self.durum['maclar'].items(), key=lambda kv: kv[1]['ko']):
             ko = utc(k['ko'])
             try:
@@ -224,6 +229,9 @@ class Tur:
                     k['muhtemel'].append(saat)
                 if self.now >= ko + MAC_SONRA and not k['mac_alindi'] and not k['vazgecildi']:
                     if self.now >= ko + MAC_VAZGEC:
+                        if gec >= GEC_SINIRI:
+                            continue        # kalanı sonraki tura
+                        gec += 1
                         d = self.detay(mid)
                         if ((d.get('header') or {}).get('status') or {}).get('finished'):
                             eksik = not tamam(d)
@@ -251,6 +259,7 @@ class Tur:
         gun = self.now.astimezone(TZ).strftime('%Y-%m-%d')
         alinan = self.durum.setdefault('lig', {})
         aday = self.durum.setdefault('gelecek_aday', {})
+        maclar = self.durum['maclar']
         for lig in sorted(self.ligler):
             if alinan.get(str(lig)) == gun:
                 continue
@@ -265,6 +274,12 @@ class Tur:
                 for m in mac_nesneleri(data):
                     mid, status = str(m['id']), m.get('status') or {}
                     ko = utc(status['utcTime']) if status.get('utcTime') else None
+                    if (ko is not None and status.get('finished') and not status.get('cancelled') and mid not in maclar
+                            and self.now - KACAN_GERI <= ko <= self.now):
+                        # günlük listenin atladığı bitmiş maç: `mac` adımı sonucunu (gerekirse eksik) yazar
+                        maclar[mid] = dict(lig=lig, ko=ko.isoformat(), muhtemel=[], ilk11=None, mac_alindi=None,
+                                           mac_deneme=0, mac_son=None, vazgecildi=False, kacan=True)
+                        self.say['kacan'] += 1
                     if (ko is None or status.get('finished') or status.get('cancelled') or status.get('awarded')
                             or not self.now - GELECEK_GERI <= ko <= self.now + GELECEK_GUN):
                         aday.pop(mid, None)

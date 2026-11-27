@@ -197,3 +197,37 @@ def test_mac_nesneleri_ic_ice_ve_matchid():
             'playoff': {'rounds': [{'matchups': [{'matchId': 5, 'home': {'name': 'A'}, 'away': {'name': 'B'}, 'status': {}}]}]},
             'fixtures': {'allMatches': [fikstur_satiri(1, 'z'), fikstur_satiri(1, 'z')]}}
     assert sorted(str(m['id']) for m in t.mac_nesneleri(data)) == ['1', '5']
+
+
+def test_gunluk_listede_olmayan_bitmis_mac_ligden_takibe_alinir(tmp_path):
+    lig = {'fixtures': {'allMatches': [
+        fikstur_satiri(20, '2026-10-15T18:00:00.000Z', finished=True),   # 11 gün önce, günlük listede yok: alınır
+        fikstur_satiri(21, '2026-10-09T18:00:00.000Z', finished=True),   # 16 günden eski: alınmaz
+        fikstur_satiri(22, '2026-10-15T18:00:00.000Z'),                  # bitmemiş: alınmaz
+        fikstur_satiri(23, '2026-10-15T18:00:00.000Z', finished=True, cancelled=True),
+        fikstur_satiri(1, '2026-10-26T16:00:00.000Z', finished=True),    # zaten takipte: dokunulmaz
+    ]}}
+    fake = Fake({'1': detail(), '20': detail('standard', finished=True, full=False)}, {71: lig})
+    x = tur(tmp_path, KO - timedelta(hours=5), fake)
+    x.calistir()
+    assert x.say['kacan'] == 1 and x.durum['maclar']['20']['kacan'] is True
+    assert set(x.durum['maclar']) == {'1', '20'} and 'kacan' not in x.durum['maclar']['1']
+    y = tur(tmp_path, KO - timedelta(hours=4), fake)                        # sonraki tur: 24 saat geçmiş, eksik yazılır
+    y.calistir()
+    assert y.say['mac_eksik'] == 1 and oku(tmp_path / 'mac' / '20.json.gz')['eksik'] is True
+
+
+def test_birikmis_gec_maclar_tur_basina_sinirli(tmp_path, monkeypatch):
+    monkeypatch.setattr(t, 'GEC_SINIRI', 2)
+    tamam_detay = detail('standard', finished=True, full=True)
+    lig = {'fixtures': {'allMatches': [fikstur_satiri(30 + i, '2026-10-15T18:00:00.000Z', finished=True)
+                                       for i in range(5)]}}
+    fake = Fake({'1': detail(), **{str(30 + i): tamam_detay for i in range(5)}}, {71: lig})
+    tur(tmp_path, KO - timedelta(hours=5), fake).calistir()
+    fake.details['1'] = detail('standard')
+    x = tur(tmp_path, KO - timedelta(minutes=45), fake)
+    x.calistir()
+    assert x.say['mac_eksik'] + x.say['mac'] == 2 and x.yeni_ilk11 == ['1']   # ilk 11 yine alınır
+    y = tur(tmp_path, KO - timedelta(minutes=40), fake)
+    y.calistir()
+    assert y.say['mac_eksik'] + y.say['mac'] == 2
